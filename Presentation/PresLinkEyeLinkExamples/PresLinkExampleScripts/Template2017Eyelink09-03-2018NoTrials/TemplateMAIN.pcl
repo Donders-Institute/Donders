@@ -1,0 +1,46 @@
+############################# INITIATION ####################################
+
+include "TemplateSUBS.pcl";		# Include all the variables.
+
+/*
+if (output_port_manager.port_count() < 1) then         # make sure a buttonbox is connected(optional)
+   ShowText( "Forgot to add an output port!" );
+   loop until false begin end 
+end;
+output_port Oport = output_port_manager.get_port( 1 );
+*/		
+/*
+if (input_port_manager.port_count() < 1) then				# make sure a buttonbox is connected(optional)
+   ShowText( "No com port selected!" );
+   loop until false begin end 
+end;
+input_port Serial = input_port_manager.get_port( 1 );
+*/
+
+GetKeyboardInput("Give subject name (8 characters or less)");
+sSubno = sKeyboardInput;
+sOutputFilename = sSubno + "_logfile.txt";
+
+sStimFilename = "InputList.txt";									# read in stimuli using our own import routine
+GetStimulusInputFile(sStimFilename);
+
+CreateHeaderOutputFile(sOutputFilename);	                       	# Write header things of logfile
+
+ShowText("This script will show provide real-time information on the coordinates of your gaze and the area (as defined in aiPictureLocations) your gaze is in. Trial data will not be recorded for analysis in data viewer. Press ENTER to continue. ");
+WaitForAllButtonpress();
+ShowText("The next screen will start the calibration routine.\nPress C to calibrate, V to validate and O to start recording.\nAfter pressing O, you will get a final drift check.\n\n\nFirst, press ENTER to continue.");
+WaitForAllButtonpress();
+InitializePresLink(sSubno,true);
+
+##########################start experiment###############################
+
+ShowGazeCoordinates(1,aiPictureLocations);
+
+StopTrackingPresLink(sSubno);
+
+p_End.present(); 
+
+
+###########
+# END		 #
+########### 

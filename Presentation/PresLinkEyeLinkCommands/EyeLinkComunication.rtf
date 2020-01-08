@@ -1,0 +1,316 @@
+{\rtf1\ansi\ansicpg1252\cocoartf1671\cocoasubrtf200
+{\fonttbl\f0\froman\fcharset0 Times-Roman;}
+{\colortbl;\red255\green255\blue255;\red0\green0\blue0;}
+{\*\expandedcolortbl;;\cssrgb\c0\c0\c0;}
+\paperw11900\paperh16840\margl1440\margr1440\vieww14220\viewh10520\viewkind0
+\deftab720
+\pard\pardeftab720\sl280\partightenfactor0
+
+\f0\fs24 \cf2 \expnd0\expndtw0\kerning0
+\outl0\strokewidth0 \strokec2 https://www.neurobs.com/menu_support/menu_forums/view_thread?id=7995\
+\
+Hello, dear presentation community!\
+We are trying to collect eye tracking data during our experiment and are using an eyelink 1000 eye tracker. We got it registered with presentation, but when the experiment is run, the communication doesn't seem to work.\
+This is part of the code we use:\
+\
+eye_tracker EyeLink = new eye_tracker ("PresLink");\
+\
+preset string edfFileName = "8characters.edf"; \'a0\'a0\'a0\'a0# only name (maximally 8 characters) + .edf\
+EyeLink.send_command("open_data_file " + edfFileName);\
+\
+EyeLink.send_command("screen_pixel_coords = 0 0 1400 1050");\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0# send resolution to eye tracker host\
+EyeLink.send_string("FRAMERATE 150");\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0# send refresh rate to eye tracker host\
+EyeLink.send_command("sample_rate = 1000");\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0# set sampling rate in hz\
+EyeLink.send_command("binocular_enabled = NO"); \'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\
+EyeLink.send_command("file_sample_data = GAZE,AREA,BUTTON,INPUT"); # determine edf file contents\
+EyeLink.send_command("file_event_data = GAZE,GAZERES,AREA,HREF,VELOCITY");\
+EyeLink.send_command("file_event_filter = LEFT,RIGHT,FIXATION,SACCADE,BLINK,MESSAGE,BUTTON,INPUT");\
+EyeLink.send_command("calibration_type = HV9");\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0# enable 9 point calibration\
+EyeLink.send_command("enable_automatic_calibration = NO");\'a0\'a0\'a0\'a0# enable manual calibration\
+EyeLink.send_command("recording_parse_type = GAZE");\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0# parse events based on gaze data\
+EyeLink.calibrate(et_calibrate_default, 0.0, 0.0, 0.0);\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0# start calibration routine\
+EyeLink.send_command("TRACK_RIGHT_EYE");\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\
+EyeLink.start_tracking(); \'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0 \
+\
+\
+### present trials \
+instruction.present();\
+fixation_trial.present();\
+EyeLink.stop_tracking();\
+EyeLink.send_command("close_data_file " + edfFileName);\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0# close edf file\
+EyeLink.send_command("receive_data_file " + edfFileName + "C:\\\\Users\\\\Nutzer\\\\Desktop\\\\Anne_Tracker_Exp\\\\logfiles\\\\" + edfFileName); # retrieve edf file\
+\
+However, the send_string command is not working and the calibration doesn't start automatically. During the time between start_tracking and stop_tracking, the host PC displays that the link is open, yet it states to be "offline".\
+After I run the experiment, I get the following error message:\
+During eye tracker::send_command the eye tracker extension returned the following error: 80070057\
+referring to the line "EyeLink.send_command("close_data_file " + edfFileName"\
+\
+If anybody knows how I can get the eye tracker to start the calibration and to record and store the data in the edf-file, I would be most grateful for an answer.\
+Many thanks, Anne\
+\
+\
+Answer:\
+\
+The close_data_file and receive_data_file lines must come before EyeLink.stop_tracking();.\
+\
+stop tracking closes the link between the display PC and eyetracking host so the file can't be transferred.\
+\
+\
+\
+\
+\
+https://www.neurobs.com/menu_support/menu_forums/view_thread?id=7995\
+\
+\
+Hello, dear presentation community!\
+We are trying to collect eye tracking data during our experiment and are using an eyelink 1000 eye tracker. We got it registered with presentation, but when the experiment is run, the communication doesn't seem to work.\
+This is part of the code we use:\
+\
+eye_tracker EyeLink = new eye_tracker ("PresLink");\
+\
+preset string edfFileName = "8characters.edf"; \'a0\'a0\'a0\'a0# only name (maximally 8 characters) + .edf\
+EyeLink.send_command("open_data_file " + edfFileName);\
+\
+EyeLink.send_command("screen_pixel_coords = 0 0 1400 1050");\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0# send resolution to eye tracker host\
+EyeLink.send_string("FRAMERATE 150");\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0# send refresh rate to eye tracker host\
+EyeLink.send_command("sample_rate = 1000");\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0# set sampling rate in hz\
+EyeLink.send_command("binocular_enabled = NO"); \'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\
+EyeLink.send_command("file_sample_data = GAZE,AREA,BUTTON,INPUT"); # determine edf file contents\
+EyeLink.send_command("file_event_data = GAZE,GAZERES,AREA,HREF,VELOCITY");\
+EyeLink.send_command("file_event_filter = LEFT,RIGHT,FIXATION,SACCADE,BLINK,MESSAGE,BUTTON,INPUT");\
+EyeLink.send_command("calibration_type = HV9");\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0# enable 9 point calibration\
+EyeLink.send_command("enable_automatic_calibration = NO");\'a0\'a0\'a0\'a0# enable manual calibration\
+EyeLink.send_command("recording_parse_type = GAZE");\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0# parse events based on gaze data\
+EyeLink.calibrate(et_calibrate_default, 0.0, 0.0, 0.0);\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0# start calibration routine\
+EyeLink.send_command("TRACK_RIGHT_EYE");\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\
+EyeLink.start_tracking(); \'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0 \
+\
+\
+### present trials \
+instruction.present();\
+fixation_trial.present();\
+EyeLink.stop_tracking();\
+EyeLink.send_command("close_data_file " + edfFileName);\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0# close edf file\
+EyeLink.send_command("receive_data_file " + edfFileName + "C:\\\\Users\\\\Nutzer\\\\Desktop\\\\Anne_Tracker_Exp\\\\logfiles\\\\" + edfFileName); # retrieve edf file\
+\
+However, the send_string command is not working and the calibration doesn't start automatically. During the time between start_tracking and stop_tracking, the host PC displays that the link is open, yet it states to be "offline".\
+After I run the experiment, I get the following error message:\
+During eye tracker::send_command the eye tracker extension returned the following error: 80070057\
+referring to the line "EyeLink.send_command("close_data_file " + edfFileName"\
+\
+If anybody knows how I can get the eye tracker to start the calibration and to record and store the data in the edf-file, I would be most grateful for an answer.\
+Many thanks, Anne\
+\
+\
+\
+\
+####################################################################################################\
+\
+\
+https://www.neurobs.com/menu_support/menu_forums/view_thread?id=7645\
+\
+Hi,\
+\
+I'm having some difficulties with Presentation and Preslink, and wondered if anyone can help?\
+\
+Following the general format in SR-research provided track.sce I have set up my scenario to first perform calibration. See below:\
+FYI I'm tracking the right eye.\
+\
+[CODE STARTS]\
+\
+begin;\
+########## eye tracking stuff\
+picture \{\
+background_color = 153,153,153;\
+\} et_calibration;\
+\
+\
+\
+\
+#cursor for left eye\
+ellipse_graphic \{ ellipse_height = 50; ellipse_width = 50; color = 0,255,0; \} left_cursor;\
+\
+#cursor for right eye\
+ellipse_graphic \{ ellipse_height = 50; ellipse_width = 50; color = 0,0,255; \} right_cursor;\
+\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\
+\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\
+trial \{ \
+picture \{ \
+# placeholder - set by PCL\
+box \{ height = 1; width = 1; color = 0,0,0; \};\
+x = 0; y = 0; \
+\} pic1;\
+\} trial1;\
+\
+########## end of eye tracker stuff\
+\
+Blah\
+Blah\
+\
+begin_pcl;\
+\
+#start of eye tracker stuff PCL\
+\
+# utility function returns the last button press\
+sub\
+\'a0\'a0\'a0\'a0int get_last_button_press_id(string buttonstr )\
+begin\
+\'a0\'a0\'a0\'a0if buttonstr.count() >0 then\
+\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0array <string> starr[2];\
+\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0buttonstr.split(" ",starr);\
+\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0return int(starr[1]);\'a0\'a0\'a0\'a0\
+\'a0\'a0\'a0\'a0end;\
+\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0return 0;\
+end;\
+\
+\
+int dheight = display_device.height();\
+int dwidth = display_device.width();\
+\
+int x =0;\
+int y =0;\
+#initialize PresLink.\
+eye_tracker tracker = new eye_tracker( "PresLink" );\
+\
+#connect to Eyelink tracker.\
+tracker.start_tracking();\
+\
+string tracker_ver = tracker.get_parameter("tracker_version");\
+\
+#tracker_ver would be something like EYELINK CL 4.48, but we want to get the 4.48\
+array <string> starr[5];\
+tracker_ver.split(" ",starr);\
+double tr_v = double(starr[3]);\
+\
+\
+#open edf file on the tracker.\
+string edf_name = "track.edf";\
+if(logfile.subject().count() >0) then\
+\'a0\'a0\'a0\'a0edf_name = logfile.subject() + ".edf";\
+end;\
+tracker.set_parameter("open_edf_file",edf_name);\
+\
+#set preamble\
+tracker.send_command("add_file_preamble_text 'PresLink Example 1'");\
+\
+string msg_res = "0 0 ";\
+\'a0\'a0\'a0\'a0msg_res.append(string(dwidth-1));\
+\'a0\'a0\'a0\'a0msg_res.append(" ");\
+\'a0\'a0\'a0\'a0msg_res.append(string(dheight-1));\
+\
+string msg_coord = "DISPLAY_COORDS 0 0 ";\
+\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0msg_coord.append(string(dwidth-1));\
+\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0msg_coord.append(" ");\
+\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0msg_coord.append(string(dheight-1));\
+\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\
+\
+tracker.set_parameter("screen_pixel_coords", msg_res);\
+tracker.send_message(msg_coord); \
+\
+tracker.set_parameter("file_event_filter", "LEFT,RIGHT,FIXATION,SACCADE,BLINK,MESSAGE,BUTTON,INPUT");\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0 \
+tracker.set_parameter("link_event_filter","LEFT,RIGHT,FIXATION,SACCADE,BLINK,BUTTON");\
+\
+if (tr_v >=4.0) then\
+\'a0\'a0\'a0\'a0tracker.set_parameter("link_sample_data" ,"LEFT,RIGHT,GAZE,GAZERES,AREA,STATUS,HTARGET");\
+\'a0\'a0\'a0\'a0tracker.set_parameter("file_sample_data", "LEFT,RIGHT,GAZE,AREA,GAZERES,STATUS,HTARGET,INPUT");\
+else\
+\'a0\'a0\'a0\'a0tracker.set_parameter("link_sample_data","LEFT,RIGHT,GAZE,GAZERES,AREA,STATUS"); \
+\'a0\'a0\'a0\'a0tracker.set_parameter("file_sample_data", "LEFT,RIGHT,GAZE,AREA,GAZERES,STATUS,INPUT");\
+end;\
+\
+#program button #5 for use in drift correction\
+tracker.send_command("button_function 5 'accept_target_fixation'");\
+\
+#tell the tracker to use 9 point calibration.\
+tracker.set_parameter("calibration_type","HV9");\
+\
+#tell PresLink that we need gaze data for both eyes (if available)\
+#tracker.start_data( et_left, dt_position, false );\
+tracker.start_data( et_right, dt_position, false );\
+\
+\
+\'a0\'a0\'a0\'a0#-----------------------CALIBRATION----------------------\'a0\'a0\'a0\'a0\
+\'a0\'a0\'a0\'a0# \
+\'a0\'a0\'a0\'a0#tell PresLink to use the target.bmp as the target - taken from stimulus_directory. \
+\'a0\'a0\'a0\'a0#otherwise the default crosshairs target will be displayed.\
+\'a0\'a0\'a0\'a0#string target_fname = stimulus_directory +"target.bmp"; \
+\'a0\'a0\'a0\'a0#tracker.set_parameter("target_file",target_fname); \
+\
+\'a0\'a0\'a0\'a0#clear out the default calibration target so that we don't get data from previous drawing.\
+\'a0\'a0\'a0\'a0et_calibration.set_background_color(153,153,153);\
+\'a0\'a0\'a0\'a0et_calibration.clear(); \
+\'a0\'a0\'a0\'a0et_calibration.present();\
+\'a0\'a0\'a0\'a0\
+\
+\'a0\'a0\'a0\'a0#start calibration with camera support\
+\'a0\'a0\'a0\'a0tracker.calibrate( et_calibrate_default, 1.0, 0.0, 0.0 );\
+\
+\'a0\'a0\'a0\'a0#drift correct at (0,0) with the options to allow Camera Setup and to draw a target\
+\'a0\'a0\'a0\'a0tracker.calibrate( et_calibrate_drift_correct, 7.0, 0.0, 0.0 );\
+\'a0\'a0\'a0\'a0\
+\'a0\'a0\'a0\'a0#stop recording.\
+\'a0\'a0\'a0\'a0tracker.set_recording(false);\
+\'a0\'a0\'a0\'a0\
+#end of eye tracker stuff PCL\
+[CODE ENDS]\
+\
+As per track.sce the code contacts the eyelink 1000 tracker and then switches to calibration mode. Following calibration and validation (initiated by me from within Presentation), I've found that I need to press 'O' and 'return' to proceed to the next part of my code (not sure why).\
+\
+That's when the fun starts. Basically I want to record pupil diameter, and have all of this information stored in the EDF file on the eyelink PC (which is transferred to Presentation right at the end). See below:\
+\
+[CODE STARTS]\
+\
+# wait for first scanner pulse to start\
+loop until pulse_manager.main_pulse_count()>0\
+begin\
+\'a0\'a0\'a0\'a0cross.present();\
+end;\
+\
+b=1\
+loop until b>total_num_stimuli\
+begin\
+cross.present();\
+end;\
+\
+# start eye tracking recording\
+tracker.start_data( dt_pupil, false );\
+tracker.start_data( dt_pupil, false );\
+# is there a tracking.set_parameter missing from here?\
+tracker.set_recording(true);\
+\
+blah\
+blah\
+\
+#mark the time we presented the stimulus\
+tracker.send_message("SYNCTIME");\
+msg= "TRIALID TRIAL ";\
+msg.append(string(b));\
+tracker.send_message(msg)\
+\
+b=b+1;\
+end; #scanning loop\
+\
+#transfer the edf file. Note Presentation places files specified without a path in the user's home directory.\
+#in this example pres_1.edf will be placed in your home directory. (eg. in xp C:\\documents and settings\\<username>\
+string edf_fname = logfile_directory + edf_name;\
+tracker.set_parameter("get_edf_file",edf_fname);\
+tracker.stop_tracking();\
+\
+[CODE ENDS]\
+\
+When I look at the EDF file that get's saved back to the Presentation PC at the end of the experiment, I have a lot of fixation data, but no pupil diameter information. Using the report export function I selected pupil X/Y size and export to excel - and get an empty file.\
+\
+My impression is that I've not turned on the pupil tracking option, and it's not clear to me how I should this.\
+\
+Any help would be much appreciated.\
+\
+Best wishes,\
+\
+Jon
+\fs28 \
+\
+
+\fs24 \
+\pard\pardeftab720\sl280\partightenfactor0
+\cf2 \
+}

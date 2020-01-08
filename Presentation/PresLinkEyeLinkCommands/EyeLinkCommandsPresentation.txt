@@ -1,0 +1,74 @@
+#################################### STEP 1 - Inicialization ########################################################
+
+
+# create the object EyeLink
+eye_tracker EyeLink = new eye_tracker ("PresLink");
+
+# retriving EyeLink version
+string EyeLink_ver = EyeLink.get_parameter("tracker_version");
+
+# create the file and name to write the data on it
+preset string edfFileName = "8characters.edf";     # only name (maximally 8 characters) + .edf
+
+# send the file edfFileName to EyeLink to work with
+EyeLink.send_command("open_data_file " + edfFileName);
+
+
+#################################### STEP 2 - Setting EyeLink Parameters ########################################################
+
+
+# set/send screen dimension in pixels to EyeLink
+EyeLink.send_command("screen_pixel_coords = 0 0 1400 1050");        
+
+# set/send framerate 
+EyeLink.send_string("FRAMERATE 150");                               
+
+# set/send sample rate in Hz
+EyeLink.send_command("sample_rate = 1000");                         
+
+# set/send sample rate 
+EyeLink.send_command("binocular_enabled = NO");                     
+
+# set/send/determine what we want to store at our edf file. In this example: Gaze, Area, Button, Input 
+EyeLink.send_command("file_sample_data = GAZE,AREA,BUTTON,INPUT");  # determine edf file contents
+
+# set/send/determine what we want to store at our edf file
+EyeLink.send_command("file_event_data = GAZE,GAZERES,AREA,HREF,VELOCITY");
+
+# set/send/determine what we want to store at our edf file
+EyeLink.send_command("file_event_filter = LEFT,RIGHT,FIXATION,SACCADE,BLINK,MESSAGE,BUTTON,INPUT");
+
+# set/send points to be use during the  calibration procedure, in this case 9 point
+EyeLink.send_command("calibration_type = HV9");                     
+
+# set/send automatic/manual calibration
+EyeLink.send_command("enable_automatic_calibration = NO");          
+
+# set/send parsed events based on gaze data
+EyeLink.send_command("recording_parse_type = GAZE");                
+
+# set/send/start calibration routine
+EyeLink.calibrate(et_calibrate_default, 0.0, 0.0, 0.0);             
+
+# set/send the eye to be tracked 
+EyeLink.send_command("TRACK_RIGHT_EYE");        
+
+
+#################################### STEP 3 - Start Recording ########################################################
+
+# start tracking
+EyeLink.start_tracking();          
+
+#################################### STEP 4 - Stop Recording & Get Data ########################################################
+
+
+# close edf file
+EyeLink.send_command("close_data_file " + edfFileName);            
+
+# retrieve the edf file from EyeLink PC to our own PC 
+EyeLink.send_command("receive_data_file " + edfFileName + "C:\\Users\\username\\Desktop\\your_folder\\" + edfFileName); 
+
+# stop tracking, always is the last thing we do
+EyeLink.stop_tracking();
+
+

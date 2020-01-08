@@ -1,0 +1,7 @@
+TrialID	LeftPicture	RightPicture	AnimalLocation
+1	cat	apple	1
+2	bike	elephant	2
+3	falcon	broccoli	1
+4	hedgehog	candle	1
+5	car	tiger	2
+6	icecream	wallaby	2

@@ -1,0 +1,377 @@
+
+bool bTrackingEnabled = true;			# true will enable all eyetracking functions, false will disable them (In case you want to test your experiment without an eyetracker connected) 
+
+eye_tracker tracker;							# create tracker object
+
+if bTrackingEnabled == true then			# having this here makes sure that setting bTrackingEnabled to false will disable all eyetracking stuff
+	tracker = new eye_tracker( "PresLink" ); 
+end;
+
+sub InitializePresLink(string sEdfFilename, bool bStartRecording) begin  #@! should this refer to pages in the SR Research manual? 
+	
+	if bTrackingEnabled == true then			# having this here makes sure that setting bTrackingEnabled to false will disable all eyetracking stuff
+	
+		# tracker.set_parameter("tracker_address", "");   # uncomment if you want to run in dummy mode #@! Using comments to turn functions on/off is ugly but seems acceptable here, as we ask users to not treat functions as a 'black box' read and understand the whole function anyway. 
+		
+		tracker.start_tracking(); # Connect to Eyelink tracker. Does not start recording to an edf file!
+
+		# tracker.set_parameter("dc_err_sound", "on");      # Can be used to turn on/off the drift correction error sound.
+
+		### This part checks the tracker version, which is later used to set the type of data that is collected
+		# The 'split' etc. are neccesary because tracker_ver would be something like EYELINK CL 4.48, but we want to get '4.48' only. 
+		# This seems to be only relevant when working with the (outdated) Eyelink II, but it does no harm to leave it in.	
+		
+		string tracker_ver = tracker.get_parameter("tracker_version");
+		array <string> starr[5]; 
+		tracker_ver.split(" ",starr);
+		double tr_v = double(starr[3]); 
+		
+		###
+		
+		sEdfFilename.append(".edf");
+		tracker.set_parameter("open_edf_file",sEdfFilename); # Open edf file on the tracker.
+		# tracker.send_command("add_file_preamble_text 'PresLink Example 1'"); # Set edf file preamble. This is not strictly necessary, disable if it causes crashes (this may happen due to a bug, known to SR research but has not been fixed yet).
+		
+		### check screen settings and communicate these to the tracker
+		## construct string which will later be used to set the screen settings on the tracker
+		int dheight = display_device.height(); # get screen height in pixels
+		int dwidth  = display_device.width();	# get screen width in pixels
+		string msg_res = "0 0 "; 
+		msg_res.append(string(dwidth-1)); # minus one because there is also a pixel 0,0 i.e. top left pixel is 0,0 so at for ex 1920x1200 the bottom right pixel is 1919 , 1199 
+		msg_res.append(" ");
+		msg_res.append(string(dheight-1)); # minus one because there is also a pixel 0,0
+
+		
+		## construct string which will later be used to add the screen settings to the .edf file
+		string msg_coord = "DISPLAY_COORDS 0 0 "; 
+		msg_coord.append(string(dwidth-1));
+		msg_coord.append(" ");
+		msg_coord.append(string(dheight-1));
+		
+		tracker.set_parameter("screen_pixel_coords", msg_res); # set the screen settings on the tracker
+		tracker.send_message(msg_coord); 					   # add screen settings to the .edf file	
+		###
+			
+		tracker.set_parameter("file_event_filter", "LEFT,RIGHT,FIXATION,SACCADE,BLINK,MESSAGE,BUTTON,INPUT");	# Data in events available trough the link. #@! Probably not always necessary to have everything but does it do harm to always have everything?	
+		tracker.set_parameter("link_event_filter","LEFT,RIGHT,FIXATION,SACCADE,BLINK,BUTTON,INPUT"); # Data in events written to the edf file. #@! Probably not always necessary to have everything but does it do harm to always have everything?	
+
+		if (tr_v >=4.0) then # check if tracker version is more than 4.0 (this matters with regards to the available data)
+			tracker.set_parameter("link_sample_data" ,"LEFT,RIGHT,GAZE,GAZERES,AREA,STATUS,HTARGET,INPUT"); # Data in samples available trough the link. #@! Probably not always necessary to have everything but does it do harm to always have everything?	
+			tracker.set_parameter("file_sample_data",  "LEFT,RIGHT,GAZE,AREA,GAZERES,STATUS,HTARGET,INPUT"); # Data in samples written to the edf file. #@! Probably not always necessary to have everything but does it do harm to always have everything?	
+		else
+			tracker.set_parameter("link_sample_data","LEFT,RIGHT,GAZE,GAZERES,AREA,STATUS,INPUT"); 
+			tracker.set_parameter("file_sample_data",  "LEFT,RIGHT,GAZE,AREA,GAZERES,STATUS,INPUT");
+		end;
+
+		#@! apparently we do not set file_event_data so I guess we just use the defaults there?
+
+		#program button #5 for use in drift correction
+		#tracker.send_command("button_function 5 'accept_target_fixation'"); #@! Taken from offical example, but setting this button is probably irrelevant unless using SR Research gear for responses
+
+		
+		#tell PresLink that we need gaze data for both eyes (if available)
+		tracker.start_data( et_right, dt_position, false );
+		tracker.start_data( et_left, dt_position, false );
+
+		#-----------------------CALIBRATION----------------------	
+		
+		# In the commented bit below we can set the file target.bmp (taken from stimulus_directory) as the target for calibration/validation. 
+		# Without setting this, the default target will be displayed.
+		# string target_fname  = stimulus_directory +"target.bmp"; 	# Construct location of target (tracker needs path + filename, not just filename!)
+		# tracker.set_parameter("target_file",target_fname); 			# set target on tracker
+
+		
+		#@! maybe have an instruction screen before this, i.e. 'C' to calibrate, 'V' to validate, 'O' to start recording, 'spacebar to accept first calibration/validation target etc' 
+		
+		#@!clear out the default calibration target so that we don't get data from previous drawing. #@!??
+		
+		#tell the tracker to use 9 point calibration.
+		tracker.set_parameter("calibration_type","HV9"); # you can also remove this line and set al settings on the tracker itself
+		
+		et_calibration.clear(); 
+      et_calibration.present();
+
+		#start calibration with camera support, with calibration settings as advised by SR research
+		tracker.calibrate( et_calibrate_default, 1.0, 0.0, 0.0 ); #@! et_calibrate_default is different from the Eyelink default, maybe include that as an alternative #@! test functioning
+
+		#drift correct at (0,0) with the options to allow Camera Setup and to draw a target, with settings as advised by SR research #@! test functioning (seems more like a generic options sreen pops up with 'C' 'V' and 'O' as options)
+		tracker.calibrate( et_calibrate_drift_correct, 7.0, 0.0, 0.0 );
+	
+		if bStartRecording then
+			tracker.set_recording(true); 	
+		end;
+	end;		
+end;
+
+sub EndTrialPresLink begin;
+	
+	# p_default.present(); # Present a blank screen
+	
+	if bTrackingEnabled == true then			# Having this here makes sure that setting bTrackingEnabled to false will disable all eyetracking stuff.
+		
+		tracker.set_recording(false);			# Stop recording.
+		
+		## In the part below, you can use the optional message "TRIAL_RESULT", followed by one or more numbers, to indicate the result of
+		## the trial. The number 0 usually represents a trial timeout, -1 represents an error. Other values may represent button numbers or key presses. 
+		
+		# string msg = "TRIAL_RESULT "; # The command itself
+		# msg.append(); 				# Append the trial result to the command. Insert the trial result between the brackets
+		# tracker.send_message(msg); 
+		##
+		
+	end;
+
+end;
+
+sub StopTrackingPresLink(string sEdfFilename) begin
+	
+	if bTrackingEnabled == true then										# having this here makes sure that setting bTrackingEnabled to false will disable all eyetracking stuff
+		tracker.set_recording(false); 									# stop recording. (if you already did that using EndTrialPresLink, this should simply do nothing.
+		sEdfFilename.append(".edf");
+		tracker.send_command("clear_screen 0");						# clear tracker screen
+		tracker.send_command("set_idle_mode"); 						# set idle mode before closing the data file
+		wait_interval(500); 													# wait for a bit for idle mode to start 
+		tracker.set_parameter("close_data_file", "");				# closing file before transfer is required
+		wait_interval(100); 													# wait for a bit so data file is closed
+		tracker.set_parameter("get_edf_file",logfile_directory + sEdfFilename); # transfer the edf file to the logfile directory. (If no path is provided, Presentation places files specified without a path in the user's home directory).
+		tracker.stop_tracking();
+		
+	end;
+	
+end;
+
+## this subroutine should only be used for presenting trials which do not use a pre-generated whole-screen image. If you have the option to easily pre-generate your images, preferably do so.
+## this subroutine presents any picture you define within Presentation and enter as an argument, and takes a screenshot of that picture for use in Eyelink Data Viewer
+## please note that taking a screenshot may take a long time, during which Presentation will be unresponsive (but usually it is reasonably fast)
+## In this subroutine, sFilename does not contain the name of a bitmap to be presented, but rather the base name the of the screenshot. iTrailID is appended to this filename.
+	
+sub PresentTrialTakeScreenshotPresLink(picture p_PresentThis, int iTrialID, string sGraphicFilename, string sDummyScreenPicture, int iPresentationTime) begin
+	sGraphicFilename.append(string(iTrialID));  	# Append TrialID to make sure that the screenshot taken has an unique name and is not overwritten (of course that means you need to make sure that iTrialID varies). 
+	sGraphicFilename.append(".bmp");					# Screenshots need the .bmp-extension, so add that hear (meaning you should provide sGraphicFilename without an extension
+	string sFullFilePath = logfile_directory+sGraphicFilename; # Append built-in Presentation variable logfile_directory before filename to ensure screenshots are saved to logfile directory.
+	sDummyScreenPicture = stimulus_directory + "/" +  sDummyScreenPicture ; # Eyelink needs the complete path to send the image. The dummy picture should be in the stimulus directory. We get the path of that directory using built-in Presentation variable stimulus_directory.
+	
+	if bTrackingEnabled == true then			# Makes sure that setting bTrackingEnabled to false will disable all eyetracking stuff
+	
+		tracker.send_command("clear_screen 0");	# send command to clear the tracker screen
+
+		### This supplies the title at the bottom of the eyetracker display
+		string msg = "record_status_message 'TRIAL ";
+		msg.append(string(iTrialID) + "/" + sGraphicFilename + "'");
+		tracker.send_command(msg);
+
+		### If you want to view separate trials in Data Viewer, senda a TRIALID message before starting to record. It should contain trial condition data required for analysis (you can add other stuff besides TRIALID here).
+		msg= "TRIALID TRIAL ";
+		msg.append(string(iTrialID)); # append whatever unique code was put into iTrialID
+		tracker.send_message(msg);		
+
+		# TRIAL_VAR message is recorded for EyeLink Data Viewer analysis
+		# It specifies the list of trial variables' values for the trial
+		# This must be specified within the scope of an individual trial (i.e., after
+		# "TRIALID" and before "TRIAL_RESULT")
+		msg = "!V TRIAL_VAR TRIAL_IMAGE ";
+		msg.append(sGraphicFilename);
+		tracker.send_message(msg);
+
+		# IMGLOAD command is recorded for EyeLink Data Viewer analysis
+		# It displays a default image on the overlay mode of the trial viewer screen.
+				
+		msg = "!V IMGLOAD FILL "; 	# you have the options  CENTER, TOP_LEFT and FILL, this subroutine will later take a full-screen screenshot, so FILL is appropriate (the image fills the whole screen so is not resized).
+		msg.append(sGraphicFilename); 	# Note that if you want to change the screen within a single trial and see the change in Data Viewer, the IMGLOAD command has to be sent AFTER set_recording(true);
+		#tracker.send_message(msg);  # here we send the image filename, note that the actual image does not exist yet, but is created at the end of this subroutine by taking a screenshot.
+		tracker.set_parameter("transfer_image", sDummyScreenPicture);	# Transfer dummy image to tracker PC so we can see it there and have a clue where the participant is looking. This will not contain your picture, but can contain image locations or at least so you can see where the subject is looking on the host PC. We cannot transfer the actual trial image here because it is not pre-generated (if it is, do not use this subroutine).
+		tracker.send_command("set_idle_mode"); 	# Set the the tracker to idle mode.
+		wait_interval(50);						# Give the tracker some time to switch mode.
+		tracker.set_recording(true); 			# start recording
+		wait_until(iPresentationTime);
+		
+		p_PresentThis.present();  					# present the stimulus
+		tracker.send_message("SYNCTIME"); 		# tell the tracker that the stimulus has just been presented
+		tracker.send_message(msg);  # here we send the image filename, note that the actual image does not exist yet, but is created at the end of this subroutine by taking a screenshot.
+					
+	else													# if the tracker is disabled
+		wait_until(iPresentationTime);
+		p_PresentThis.present();  					# present the stimulus
+	
+	end;
+	int iStimulusScreenTime = clock.time();	# if you need the time of stimulus screen presentation, return this value or make it global.
+	display_device.screenshot(sFullFilePath) ;# take a screenshot so we now have an image of the whole screen for data viewer analysis
+
+end;
+
+# This subroutine assumes presentation of a full-screen bitmap with exactly the same size as the screen (i.e. no resizing)! 
+# This is the simplest method to ensure that display PC (The one the subject sees), host PC (the eyelink PC) and Data Viewer (during later analysis) all have the correct image coordinates.
+# This should be the preferred method when it possible to pre-generate all the trial screens before the experiment, because:
+# Getting the right image on thos host PC (eyelink PC) is a hassle otherwise, because this requires a full-screen image to function properly. This means that without a pre-generated full-screen image,
+# having the image displayed correctly on the host PC is impossible (getting it correct in Data Viewer is still possible). 
+
+
+sub PresentWholeScreenTrialPresLink(picture p_PresentThis, bitmap b_BitmapObject, string sGraphicFilename, int iTrialID, int iWaitUntilTime) begin
+	
+	b_BitmapObject.set_filename(sGraphicFilename);
+	b_BitmapObject.load();
+	
+	if bTrackingEnabled == true then			# having this here makes sure that setting bTrackingEnabled to false will disable all eyetracking stuff. With tracker disabled, all this function does is wait for some time and display a picture.
+	
+		tracker.send_command("clear_screen 0");	# send command to clear the tracker screen
+
+		# This supplies the title at the bottom of the eyetracker display
+		string msg = "record_status_message 'TRIAL ";
+		msg.append(string(iTrialID)+"'");
+		tracker.send_command(msg);
+
+		# Always send a TRIALID message before starting to record. It should contain trial condition data required for analysis. 
+		# This subroutine assumes that the argument iTrialID contains an unique code which enables identification of the trial at a later stage.
+				
+		msg= "TRIALID TRIAL ";
+		msg.append(string(iTrialID)); # append whatever unique code was put into iTrialID
+		tracker.send_message(msg);		
+
+		# TRIAL_VAR message is recorded for EyeLink Data Viewer analysis
+		# It specifies the list of trial variables' values for the trial
+		# This must be specified within the scope of an individual trial (i.e., after
+		# "TRIALID" and before "TRIAL_RESULT") 
+		# By default, this subroutine only sends the name of the presented bitmap as a variable. You can add extra variables in the code below, if necessary.
+		
+		#msg = "!V TRIAL_VAR TRIAL_IMAGE ";
+		#msg.append(sGraphicFilename);
+		#tracker.send_message(msg);
+
+		# IMGLOAD command is recorded for EyeLink Data Viewer analysis
+		# It displays a default image on the overlay mode of the trial viewer screen.
+		# IMPORTANT!: IMGLOAD specifies the way the bitmap was presented on the screen, and should therefore match the way the image was presented in Presentation!!
+		# IMGLOAD does not affect what the subject (or experimenter) sees during the experiment, nor does it detect the way in which Presentation presented the image to the subject.
+		# It only records the way the image was presented for later analysis in Data Viewer
+		# Because this subroutine assumes a whole screen image, 
+				
+		msg = "!V IMGLOAD CENTER "; 	# This will inform the tracker that the image will be presented at the center of the screen, without resizing. This command has the options CENTER, TOP_LEFT and FILL, but these should not matter in this case as this subroutine assumes presentation of a full-screen bitmap with exactly the same size as the screen (i.e. no resizing)!
+		msg.append(sGraphicFilename); 	
+		
+		tracker.set_parameter("transfer_image", stimulus_directory + "/"+sGraphicFilename);       # send the image to the host (eyelink) PC so we can see it there. This will be placed with top_left coordinates, but that should be no problem if the image fits the whole screen, as in that case this will have the same effect as 'center' or 'fill' coordinates.
+	
+		tracker.send_command("set_idle_mode"); 	# set the the tracker to idle mode.
+		wait_interval(50);						# give some time for the tracker to switch mode.
+		tracker.set_recording(true); 			# start recording
+		wait_until(iWaitUntilTime); 						# wait until the time specified. Waiting needs to be done within this subroutine and not before it, as executing all the code before this line will take more than a few ms! Note that iTime is not the duration of this or the previous stimulus, but a value of clock.time(), i.e. you should compute at which clock time the stimulus should be presented.
+		p_PresentThis.present();  						# present the stimulus
+		tracker.send_message("SYNCTIME"); 		# tell the tracker that the stimulus has just been presented
+		tracker.send_message(msg);  # Send the image filename, and the way it will be presented on the screen (by Presentation). Presentation should present the image in the center of the screen, without resizing.
+	else										# if the tracker is disabled
+		wait_until(iWaitUntilTime);						# wait until the time specified. 
+		p_PresentThis.present();  						# present the stimulus
+	
+	end;
+		
+end;
+
+
+
+
+
+## Checks if a point with coordinates d_X and d_Y are within one of the rectangular areas specified in ai_Locations. 
+## Each area should be specified as [1] left X, [2] right X, [3] Bottom Y, [4] Top Y #@! is that a logical order?
+## For example, ai_Locations[3][4] will contain the TopY coordinate for area number three.
+## The function returns the number of the first area which contains the specified point, and returns zero if no locations contain that point.
+## This function can be used to for ex. check if gaze or mouse coordinates are within a certain area, though you might need to change the parameters from double to int for that.
+
+sub int CheckCoordinatesInArea(double d_X, double d_Y, array<int,2> ai_Locations) begin
+	
+	int i_X = int(d_X); # Double to int conversion implicit in newer versions of Presentation (17 or 18 and higher), in which case this we could simply remove this line and use d_X in the lines below
+	int i_Y = int(d_Y); # Double to int conversion implicit in newer versions of Presentation (17 or 18 and higher), in which case this we could simply remove this line and use d_X in the lines below
+	
+	int i_NumLocations = ai_Locations.count() ;
+	loop int i_LocCount = 1 until i_LocCount > i_NumLocations begin
+		
+		if ((i_X > ai_Locations[i_LocCount][1]) && (i_X < ai_Locations[i_LocCount][2]) && (i_Y > ai_Locations[i_LocCount][3]) && (i_Y < ai_Locations[i_LocCount][4])) then 
+			return i_LocCount;
+		end;
+		i_LocCount = i_LocCount + 1;
+	end;
+	return 0;
+
+end;
+
+## Gets eye position data and checks whether gaze is in one of the areas specified in the array 'aiArea'  
+## Exits if gaze has been in the area with index specified in iTargetArea for the time specified in iTimeoutDuration
+
+sub MeasureGazeInArea(int iTargetArea, array<int,2> aiArea, int iTimeoutDuration) begin;
+	
+	if bTrackingEnabled == true then
+		## variables which will contain eye position data
+		eye_position_data eyepos; 	# for storing eye position data 
+		double x;					# x-coordinate from eye position data #@! naming!
+		double y;					# y-coordinate from eye position data #@! naming
+		##
+		
+		int iLastDataTime = 0; 		# time of last incoming eyetracker data point
+		int iCurrentArea  = 0;		# area the gaze was in during last incoming data point, (0 if in none of the areas specified in aiArea)
+		int iPreviousArea = 0;		# used to judge whether the previous data point was in the same area as the current one 
+		int iTotalTimeInArea=0;		# 
+		
+		int iEnterAreaTime=0;		# time gaze entered target area (i.e. if current data point is in target area and previous data point outside of it)
+		int iIntermediateTimeInArea=0; # 
+		
+		loop until (iTotalTimeInArea+iIntermediateTimeInArea) > iTimeoutDuration begin
+
+			if(tracker.new_position_data(et_right) > 0) then		# check if new gaze position data is available 
+				
+				iLastDataTime = clock.time();						# get time of last incoming data
+				
+				eyepos = tracker.last_position_data(et_right); 		# get gaze position data  
+				x = eyepos.x();										# get current gaze position x
+				y = eyepos.y();										# get current gaze position y	
+				
+				iCurrentArea = CheckCoordinatesInArea(x,y,aiArea) ;	# check whether gaze is in one of the areas defined in aiArea (returns 0 if not) 
+		
+				if iCurrentArea == iTargetArea  then 							# if gaze is in target area
+					
+					if iPreviousArea ==  iTargetArea then						# check if previous data point was in the target area as well 
+						iIntermediateTimeInArea = iLastDataTime-iEnterAreaTime; # If so, we were already in the area, so compute time between the time we entered the area and the last data point, this is our 'intermediate time in area', i.e. the time since the last time we entered the area.
+					else
+						iEnterAreaTime = iLastDataTime;							# If previous gaze coordinates were not in area, indicate that this is the time we entered the area.
+						iTotalTimeInArea = iTotalTimeInArea+iIntermediateTimeInArea; #  The next line will reset iIntermediateTimeInArea, this may still contain the duration of the previous period the gaze was in the area. This needs to be added to the total time.
+						iIntermediateTimeInArea = 0;							# Reset intermediate time to zero because we start measuring time again beginning with the last data point (i.e. when entering the area).	
+					end;
+					
+				end;
+				
+				iPreviousArea = iCurrentArea;									# set iPreviousArea to match the current area (so when the next data point comes in, iCurrentArea will contain the location of that data point and iPreviousArea the location of the previous one)
+			
+			end;
+			
+		end;
+		
+		iTotalTimeInArea = iTotalTimeInArea+iIntermediateTimeInArea;  			# if there is any leftover time in the area which has not been added to the total time, that happens here
+	else
+		wait_interval(500); # if tracking is disabled, just wait for a bit so we can see what is presented
+	end;
+end ;
+
+sub ShowGazeCoordinates(int iTargetArea, array<int,2> aiArea) begin;
+	
+	if bTrackingEnabled == true then
+		## variables which will contain eye position data
+		eye_position_data eyepos; 	# for storing eye position data 
+		double x;					# x-coordinate from eye position data #@! naming!
+		double y;					# y-coordinate from eye position data #@! naming!
+		int iCurrentArea;			# area the gaze was in during last incoming data point, (0 if in none of the areas specified in aiArea)
+			
+		loop int i_CountOld = response_manager.total_response_count() until i_CountOld < response_manager.total_response_count() begin
+
+			if(tracker.new_position_data(et_right) > 0) then		# check if new gaze position data is available 
+				
+				eyepos = tracker.last_position_data(et_right); 		# get gaze position data  
+				x = eyepos.x();										# get current gaze position x
+				y = eyepos.y();										# get current gaze position y	
+				iCurrentArea = CheckCoordinatesInArea(x,y,aiArea) ;	# check whether gaze is in one of the areas defined in aiArea (returns 0 if not) 
+				t_Xcoord.set_caption("x: " + string(x),true);
+				t_Ycoord.set_caption("y: " + string(y),true);
+				t_Area.set_caption("Area: "+ string(iCurrentArea),true);
+				p_GazeCoordinates.present();	
+				
+			end;
+		end;
+	else;
+		wait_interval(500);
+	end;
+end ;

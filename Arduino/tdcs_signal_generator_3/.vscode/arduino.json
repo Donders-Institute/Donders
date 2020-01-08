@@ -1,0 +1,5 @@
+{
+    "board": "arduino:avr:uno",
+    "sketch": "tdcs_signal_generator_3.ino",
+    "port": "COM4"
+}

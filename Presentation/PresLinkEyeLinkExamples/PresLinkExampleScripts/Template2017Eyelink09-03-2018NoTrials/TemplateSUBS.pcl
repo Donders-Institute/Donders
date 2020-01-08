@@ -1,0 +1,135 @@
+
+include "TemplateVARS.pcl";		# Include all the subroutines.
+include "EyelinkSUBS.pcl"; 
+######################## CONDITION INFO SUBS ##############################
+#--------------------------Get_Kbd_Input-------------------------------------
+sub GetKeyboardInput(string sInputText) begin
+	t_Info1.set_caption(sInputText, true);
+	t_Info2.set_caption(" ", true);
+	p_Info.present();
+	system_keyboard.set_case_mode(3); # Capitals possible
+	sKeyboardInput = system_keyboard.get_input( p_Info, t_Info2 ); # Gets any keyboard input, including backpaces
+end;
+
+
+#-----------------------------Get_stimulus_file------------------------------------
+sub GetStimulusInputFile(string sInputfileName )
+begin    
+	
+	input_file inputfile = new input_file;
+	inputfile.open( sInputfileName );    
+	inputfile.set_delimiter( '\n' ); 						# for get_line()
+	string sDummy = inputfile.get_line();					# dummy read of the first line
+
+	loop iTrialCount = 1 until								
+		inputfile.end_of_file() || !inputfile.last_succeeded()
+	begin
+		sDummy = inputfile.get_line();
+		sDummy.split("\t",asTrialInputData[iTrialCount]);
+		iTrialCount = iTrialCount + 1;
+	end;  
+	
+	if !inputfile.last_succeeded() then
+		term.print( "Error in input file!\n" )
+	end;   
+	inputfile.close();
+  
+end;   
+
+################################################### 
+sub ShowText( string sMessage ) begin
+	
+   t_Text1.set_caption( sMessage, true );
+   p_Text.present();
+
+end;
+
+#-----------------------------Wait------------------------------------
+sub Wait(int iDurWait) begin
+
+	loop 
+		iTimeStamp = clock.time();
+	until (clock.time() >= iTimeStamp + iDurWait)
+	begin 
+	end;
+
+end;
+
+#-----------------------------WaitUntilTimeStamp------------------------------------
+sub WaitUntilTimeStamp(int iDurTimestamp) begin
+
+   loop 
+	until clock.time() >= iDurTimestamp
+   begin 
+	end;
+
+end;
+
+#-----------------------------WaitSubjectReady------------------------------------
+sub WaitForAllButtonpress begin
+    
+   loop 
+		iCountOld = response_manager.total_response_count()
+   until response_manager.total_response_count() > iCountOld
+   begin 
+	end;
+   
+end;
+
+#-----------------------------WaitForAllButtonpressTime------------------------------------
+sub WaitForAllButtonpressTime( int iDurWait ) begin
+
+   loop 
+		iCountOld = response_manager.total_response_count();	
+		iTimeStamp = clock.time();
+	until ((response_manager.total_response_count() > iCountOld) || (clock.time() >= iTimeStamp + iDurWait))
+   begin 
+	end;
+
+end;
+
+
+#-----------------------------WaitForAllButtonpress------------------------------------
+sub WaitForButtonpress( int iButton ) begin
+
+   loop 
+		iCountOld = response_manager.total_response_count(iButton)
+   until response_manager.total_response_count(iButton) > iCountOld
+   begin 
+	end;
+
+end;
+
+############################ LOGFILE #######################   
+#-----------------------------CreateOutput------------------------------------
+sub CreateHeaderOutputFile(string sFilename ) begin
+
+	string sTrialData = "";
+ 
+	sTrialData.append("Trial_nr" + "\t");   
+	sTrialData.append("Filename" + "\t");   
+	sTrialData.append("FixationTime" + "\n");   
+	
+   OutputFile.open( sFilename, false ); # don't overwrite
+   OutputFile.print( sTrialData );
+   OutputFile.close();
+
+end; 
+
+#-----------------------------WriteOutput------------------------------------
+
+sub WriteTrialToOutputFile(string sFilename ) begin
+
+	string sTrialData = "";
+
+	sTrialData.append(string(iTotalTrialCount) + "\t");   #write variable followed by a tab
+	sTrialData.append(sOutputFilename + "\t");   
+	sTrialData.append(string(iFixationTime) + "\n");   
+
+   OutputFile.open_append ( sFilename);
+   OutputFile.print( sTrialData );
+   OutputFile.close();
+        
+end;                                            
+
+

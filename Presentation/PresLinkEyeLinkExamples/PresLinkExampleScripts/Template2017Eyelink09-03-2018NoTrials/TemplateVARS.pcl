@@ -1,0 +1,30 @@
+# --------------------- VARIABLES INITIATION ----------------------------
+
+int iCountOld;				
+int iTimeStamp;
+int iTrialCount;
+int iTotalTrialCount;
+string sKeyboardInput;
+string sSubno;
+# -------------------------- FILES -----------------------------
+string sStimFilename;
+string sOutputFilename;
+
+# --------------------- INPUT FILE VARIABLES INITIATION ----------------------------;
+int iMaxColumns = 3;
+int iTotalAmountOfTrials = 6; 
+int iTotalAmountOfBlocks = 2; 
+int iRunAmountOfTrials = 3;	
+int iBlocks;
+
+array <string> asTrialInputData[iTotalAmountOfTrials][iMaxColumns];	# 2 * 12 * 6 words 
+# --------------------- OUTPUT FILE VARIABLES INITIATION ----------------------------;
+output_file OutputFile = new output_file;
+int iFixationTime;
+int iButtonPressed;
+
+# --------------------- EXPERIMENT VARIABLES INITIATION ----------------------------;
+# bool early = false;	# example of a boolean
+# removed array <int> wait_times[3] = {41, 191, 491}; # example of an array with initialization
+
+array<int> aiPictureLocations[2][4] = {{-600,-200,-200,200}, {200,600,-200,200}}; #@! technically incorrect, 1 pixel difference, fix
